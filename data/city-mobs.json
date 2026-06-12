@@ -1,0 +1,86 @@
+{
+  "dataItems": [
+    {
+      "id": "city-001",
+      "data": {
+        "name": "Gutter Wraith",
+        "subtitle": "Sewer Specter",
+        "description": "A translucent, flickering apparition that haunts the sewers and back alleys of The City. Gutter Wraiths are the restless spirits of those who died unmourned in the city's underbelly. They drift through walls and drains, drawn to the warmth of the living, emitting a low moan that echoes through the tunnels.",
+        "health": "4 (+2)",
+        "focus": "8",
+        "stats": {
+          "str": "",
+          "end": "",
+          "dex": "+2",
+          "int": "+1",
+          "wil": "+3",
+          "per": "+2",
+          "cha": "",
+          "initiative": "Initiative I",
+          "def": ""
+        },
+        "weapons": [
+          { "name": "Chilling Grasp", "damage": "D6 Cold (Melee only)" }
+        ],
+        "tacticsDescription": "Gutter Wraiths phase through walls to ambush targets from unexpected angles. They prefer to isolate a single victim and drain their warmth. Physical weapons pass through them unless enchanted or silvered.",
+        "abilities": [
+          {
+            "name": "Incorporeal",
+            "cost": "Passive",
+            "description": "Physical attacks deal half damage unless the weapon is silvered or enchanted. The Wraith can move through solid objects but cannot end its turn inside one."
+          },
+          {
+            "name": "Mournful Wail",
+            "cost": "4 focus",
+            "description": "All living creatures within short range must make a Willpower check (DC 12) or become Frightened for 1 round."
+          }
+        ],
+        "loot": [
+          "Ectoplasmic Residue (no check needed) x1",
+          "Wraith Essence (14+ Willpower (Occult) needed) x1"
+        ],
+        "tags": ["Undead", "Melee", "Incorporeal"],
+        "extraInfo": "Gutter Wraiths are most commonly encountered in the Drowned Quarter and the Old Catacombs beneath The City. City Watch records indicate sightings spike during the wet season when the sewers flood and disturb old burial sites. The Lamplighters' Guild maintains salt-and-silver lanterns at major intersections specifically to ward off Wraith incursions. Wraith Essence, when carefully distilled, can be used to brew Ghostsight Tonic — a potion that allows the drinker to perceive invisible and ethereal creatures for one hour."
+      }
+    },
+    {
+      "id": "city-002",
+      "data": {
+        "name": "Ratling Thug",
+        "subtitle": "Street Muscle",
+        "description": "A burly, bipedal rat-person standing about five feet tall, clad in scavenged leather armor and wielding crude but effective weapons. Ratlings form the bulk of The City's criminal underworld, working as enforcers, pickpockets, and hired muscle. They are cunning, cowardly alone but bold in numbers.",
+        "health": "3 (+1)",
+        "focus": "4",
+        "stats": {
+          "str": "+1",
+          "end": "+1",
+          "dex": "+2",
+          "int": "0",
+          "wil": "0",
+          "per": "+1",
+          "cha": "-1",
+          "initiative": "Initiative II",
+          "def": ""
+        },
+        "weapons": [
+          { "name": "Rusty Shiv", "damage": "D6 Piercing (Melee only)" },
+          { "name": "Thrown Rock", "damage": "D4 Crushing (Short range)" }
+        ],
+        "tacticsDescription": "Ratling Thugs fight dirty and in groups. They flank targets, use thrown rocks to soften foes at range, then close in with shivs. If the fight turns against them, they flee into the nearest drain or alley.",
+        "abilities": [
+          {
+            "name": "Pack Tactics",
+            "cost": "Passive",
+            "description": "The Ratling has advantage on attack rolls against a target if at least one of its allies is within melee range of the target."
+          }
+        ],
+        "loot": [
+          "Ratling Leather Scraps (no check needed) x1",
+          "Stolen Coin Pouch (8+ Perception (Search) needed) x1"
+        ],
+        "tags": ["Humanoid", "Melee", "Ranged"],
+        "extraInfo": "Ratling Thugs are the foot soldiers of The City's various criminal syndicates, most notably the Whisker Syndicate and the Sewer Kings. Despite their reputation as simple brutes, Ratling society has a complex hierarchy based on ear notching — the more notches, the higher the rank. They communicate through a system of scent markers invisible to most other races. Some City merchants maintain unofficial truces with local Ratling gangs, paying small 'protection fees' in cheese and grain. Captured Ratlings will sometimes trade information about rival gangs in exchange for their freedom."
+      }
+    }
+  ]
+}

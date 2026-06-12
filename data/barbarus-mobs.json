@@ -1,0 +1,85 @@
+{
+  "dataItems": [
+    {
+      "id": "barb-001",
+      "data": {
+        "name": "Not-Deer",
+        "subtitle": "Not-Prey",
+        "description": "An uncanny creature that resembles a deer at first glance, but something is deeply wrong. Its joints bend the wrong way, its eyes track you with predatory intelligence, and its mouth opens far too wide. Found in the deep forests of Barbarus, the Not-Deer is a dangerous ambush predator that uses its innocent appearance to lure the unwary.",
+        "health": "3 (+2)",
+        "focus": "7",
+        "stats": {
+          "str": "+1",
+          "end": "0",
+          "dex": "+1",
+          "int": "",
+          "wil": "+3",
+          "per": "+1",
+          "cha": "",
+          "initiative": "Initiative I",
+          "def": ""
+        },
+        "weapons": [
+          { "name": "Unhinging Bite", "damage": "D6 Crushing (Melee only)" }
+        ],
+        "tacticsDescription": "Will attempt to get in melee range by feigning being a normal deer. Once in close quarters, it becomes extremely aggressive and will not flee until its prey is down.",
+        "abilities": [
+          {
+            "name": "Not Prey!",
+            "cost": "5 focus",
+            "description": "When in Melee range of an enemy, the Not-Deer can use this ability to make a free Unhinging Bite attack with advantage. If the target was unaware of the Not-Deer's true nature, this attack deals double damage."
+          }
+        ],
+        "loot": [
+          "Deer hide (14+ Dexterity (Bushcraft) needed) x1"
+        ],
+        "tags": ["Beast", "Melee"],
+        "extraInfo": "The Not-Deer is believed to originate from a corrupted forest spirit that was twisted during the Great Sundering. Scholars at the Barbarus Academy theorize that Not-Deer were once guardians of the woodland, now driven mad by lingering arcane fallout. They are most active during twilight hours and new moons. Experienced hunters recommend carrying iron bells, as the sound disorients them briefly. Their hides, when properly treated, make excellent cloaks that provide natural camouflage in forested areas."
+      }
+    },
+    {
+      "id": "barb-002",
+      "data": {
+        "name": "Hollow Stalker",
+        "subtitle": "The Hungry Dark",
+        "description": "A gaunt, shadow-wreathed humanoid that lurks in the deep caves and abandoned ruins of Barbarus. Its body appears desiccated and skeletal, yet it moves with unnerving speed. The Hollow Stalker feeds on the warmth and life force of living creatures, leaving behind frost-rimed corpses.",
+        "health": "5 (+3)",
+        "focus": "10",
+        "stats": {
+          "str": "+2",
+          "end": "+1",
+          "dex": "+3",
+          "int": "+1",
+          "wil": "+2",
+          "per": "+2",
+          "cha": "",
+          "initiative": "Initiative II",
+          "def": "+1"
+        },
+        "weapons": [
+          { "name": "Draining Touch", "damage": "D8 Cold (Melee only)" },
+          { "name": "Shadow Lash", "damage": "D4 Necrotic (Short range)" }
+        ],
+        "tacticsDescription": "Prefers to stalk prey from the shadows, waiting for an isolated target. Opens with Shadow Lash to weaken, then closes to melee for Draining Touch. Will retreat into darkness if outnumbered.",
+        "abilities": [
+          {
+            "name": "Life Drain",
+            "cost": "4 focus",
+            "description": "On a successful Draining Touch hit, the Hollow Stalker heals for half the damage dealt."
+          },
+          {
+            "name": "Shadow Step",
+            "cost": "3 focus",
+            "description": "The Hollow Stalker can teleport up to 10 meters to any area of dim light or darkness within line of sight."
+          }
+        ],
+        "loot": [
+          "Shadow Essence (no check needed) x1",
+          "Stalker Bone (12+ Strength (Harvest) needed) x2"
+        ],
+        "tags": ["Undead", "Melee", "Ranged"],
+        "extraInfo": "Hollow Stalkers are remnants of an ancient expedition that ventured too deep beneath the mountains of Barbarus. The explorers were consumed by a creeping darkness and rose again as these dreadful entities. They retain fragments of intelligence from their former lives, sometimes whispering names or phrases in a long-dead language. Clerics of the Ember Order have documented that consecrated flame can temporarily suppress a Stalker's Shadow Step ability. Their Shadow Essence is a prized alchemical ingredient used in crafting darkvision elixirs."
+      }
+    }
+  ]
+}
