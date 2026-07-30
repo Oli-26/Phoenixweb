@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Phoenix - Sign in</title>
+    <link href="css/app.css" rel="stylesheet" />
+    <style>
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            font-family: 'Merriweather', Georgia, serif;
+            text-align: center;
+            padding: 1.5rem;
+        }
+        .auth-status { max-width: 22rem; }
+        .auth-status h1 { font-size: 1.25rem; color: #2d8659; margin-bottom: .75rem; }
+        .auth-status p { color: #4a5568; font-size: .9rem; line-height: 1.5; }
+        .auth-error { color: #c53030; }
+    </style>
+</head>
+
+<body>
+<div class="auth-status">
+    <h1 id="auth-heading">Signing you in…</h1>
+    <p id="auth-detail">Redirecting to Google.</p>
+</div>
+
+<script type="module" src="js/auth-popup.js"></script>
+</body>
+
+</html>

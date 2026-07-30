@@ -1,3 +1,5 @@
+import { signIn, signOut, onAuthChange, isConfigured } from '../services/auth-service.js';
+
 export function renderNavbar() {
     const hash = location.hash || '#/';
 
@@ -55,11 +57,44 @@ export function renderNavbar() {
                     <span>Library</span>
                 </a>
             </div>
+            <div class="nav-account" id="nav-account"></div>
         </div>
     </nav>`;
 }
 
+function renderAccount(container, user) {
+    if (user) {
+        const name = user.user_metadata?.full_name || user.email || 'Account';
+        container.innerHTML = `
+            <span class="nav-account-name" title="${user.email || ''}">${name}</span>
+            <button class="nav-account-btn" id="nav-signout">Sign out</button>`;
+        container.querySelector('#nav-signout').addEventListener('click', () => signOut());
+    } else {
+        container.innerHTML = `<button class="nav-account-btn" id="nav-signin">Sign in</button>`;
+        container.querySelector('#nav-signin').addEventListener('click', async (e) => {
+            const btn = e.currentTarget;
+            btn.disabled = true;
+            btn.textContent = 'Signing in…';
+            try {
+                await signIn();
+            } catch (err) {
+                btn.disabled = false;
+                btn.textContent = 'Sign in';
+                console.warn('Sign-in failed:', err.message);
+            }
+        });
+    }
+}
+
+function initAccount() {
+    const container = document.getElementById('nav-account');
+    if (!container || !isConfigured()) return;
+    onAuthChange(user => renderAccount(container, user));
+}
+
 export function initNavbar() {
+    initAccount();
+
     const hamburger = document.getElementById('nav-hamburger');
     const links = document.getElementById('navbar-links');
     if (!hamburger || !links) return;

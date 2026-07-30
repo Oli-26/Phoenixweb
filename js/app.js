@@ -4,6 +4,7 @@ import * as browser from './pages/browser.js';
 import * as library from './pages/library.js';
 import * as mobBrowser from './pages/mob-browser.js';
 import { initNavbar } from './components/navbar.js';
+import { initAuth } from './services/auth-service.js';
 
 const routes = {
     '/': browser,
@@ -45,6 +46,9 @@ async function start() {
     ]);
     navigate();
     window.addEventListener('hashchange', navigate);
+
+    // Non-blocking: the app is fully usable signed-out, so auth must never gate startup.
+    initAuth().catch(err => console.warn('Auth init failed:', err.message));
 
     // Global Escape key to close modals
     document.addEventListener('keydown', (e) => {
