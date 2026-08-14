@@ -1,5 +1,6 @@
 import { isAbilitySaved, addAbility, removeAbility } from '../services/storage-service.js';
 import { hasLevel, getLevelDescription, getLevelCost, isPassive } from '../services/ability-service.js';
+import { escapeHtml } from '../utils/sanitize.js';
 
 function getSubtitle(ability) {
     const worldTags = ['Barbarus', 'Rifts and Rivets', 'The City', 'PHOENIX'];
@@ -21,8 +22,8 @@ function renderLevelSection(data, level) {
         </div>
         <div class="level-content">
             ${has
-                ? `<div class="ability-type">${passive ? 'Passive' : cost}</div>
-                   <p class="level-description">${desc}</p>`
+                ? `<div class="ability-type">${passive ? 'Passive' : escapeHtml(cost)}</div>
+                   <p class="level-description">${escapeHtml(desc)}</p>`
                 : `<div class="ability-type">N/A</div>
                    <p class="level-description na">N/A</p>`
             }
@@ -49,10 +50,10 @@ export function renderAbilityCard(ability) {
     <div class="ability-card-wrapper">
         <div class="stats-bar">
             <div class="stat-badges">
-                <span class="stat-badge">Power: ${data.power}</span>
-                <span class="stat-badge">Complexity: ${data.complexity}</span>
+                <span class="stat-badge">Power: ${parseInt(data.power) || 0}</span>
+                <span class="stat-badge">Complexity: ${parseInt(data.complexity) || 0}</span>
             </div>
-            <button class="save-button ${saved ? 'saved' : ''}" data-ability-id="${ability.id}">
+            <button class="save-button ${saved ? 'saved' : ''}" data-ability-id="${escapeHtml(ability.id)}">
                 <span>${saved ? '\u2605 In Library' : 'Add to Library'}</span>
             </button>
         </div>
@@ -60,13 +61,13 @@ export function renderAbilityCard(ability) {
         <div class="ability-card-container">
             <div class="ability-page">
                 <div class="card-header">
-                    <h2 class="ability-title">${data.abilityName}</h2>
-                    <div class="ability-subtitle">${getSubtitle(ability)}</div>
+                    <h2 class="ability-title">${escapeHtml(data.abilityName)}</h2>
+                    <div class="ability-subtitle">${escapeHtml(getSubtitle(ability))}</div>
                 </div>
                 <div class="card-content">
                     <div class="description-section">
                         <h3>Description</h3>
-                        <p>${data.abilityDescription}</p>
+                        <p>${escapeHtml(data.abilityDescription)}</p>
                     </div>
                     ${leftLevels}
                 </div>
@@ -80,7 +81,8 @@ export function renderAbilityCard(ability) {
         </div>
 
         <div class="tags-section">
-            ${data.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
+            ${data.tags.map(tag => `<span class="tag">${escapeHtml(tag)}</span>`).join('')}
+            ${data.extraInfo ? `<button class="ability-extra-info-btn" data-ability-id="${escapeHtml(ability.id)}">Supporting Info</button>` : ''}
         </div>
     </div>`;
 }

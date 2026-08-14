@@ -2,6 +2,7 @@ import { getAllMobs, getAllTags, getWorldName } from '../services/mob-service.js
 import { renderNavbar } from '../components/navbar.js';
 import { renderMobCard, attachMobCardEvents } from '../components/mob-card.js';
 import { renderCardActionButtons, attachCardActionEvents } from '../components/card-actions.js';
+import { renderMarkdown } from '../utils/markdown.js';
 
 let searchTerm = '';
 let selectedTags = [];
@@ -287,7 +288,7 @@ function openExtraInfo(mob) {
                 <span class="extra-info-subtitle">Supporting Information</span>
             </div>
             <div class="extra-info-body-content">
-                <p>${escapeHtmlSafe(mob.data.extraInfo)}</p>
+                ${renderMarkdown(mob.data.extraInfo)}
             </div>
         </div>`;
 }

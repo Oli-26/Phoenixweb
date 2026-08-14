@@ -2,6 +2,7 @@ import { getAllAbilities, getAllTags } from '../services/ability-service.js';
 import { renderNavbar } from '../components/navbar.js';
 import { renderAbilityCard, attachAbilityCardEvents } from '../components/ability-card.js';
 import { renderCardActionButtons, attachCardActionEvents } from '../components/card-actions.js';
+import { renderMarkdown } from '../utils/markdown.js';
 
 let searchTerm = '';
 let selectedTags = [];
@@ -188,6 +189,17 @@ export function render() {
             </button>
             <div id="ability-modal-body"></div>
         </div>
+    </div>
+
+    <div id="ability-extra-info-overlay" class="modal-overlay" style="display:none;">
+        <div class="modal-content" id="ability-extra-info-content" style="background: var(--surface, white); padding: 0; max-height: 80vh; max-width: 550px; overflow-y: auto; border-radius: 12px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); position: relative;">
+            <button class="modal-close" id="ability-extra-info-close">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M6 18L18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </button>
+            <div id="ability-extra-info-body"></div>
+        </div>
     </div>`;
 }
 
@@ -338,12 +350,40 @@ function openModal(ability) {
     body.innerHTML = renderCardActionButtons('ability') + renderAbilityCard(ability);
     attachAbilityCardEvents(ability);
     attachCardActionEvents(body, 'ability', ability);
+
+    const extraBtn = body.querySelector('.ability-extra-info-btn');
+    if (extraBtn) {
+        extraBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            openExtraInfo(ability);
+        });
+    }
 }
 
 function closeModal() {
     isModalOpen = false;
     selectedAbility = null;
     document.getElementById('ability-modal-overlay').style.display = 'none';
+}
+
+function openExtraInfo(ability) {
+    const overlay = document.getElementById('ability-extra-info-overlay');
+    const body = document.getElementById('ability-extra-info-body');
+    overlay.style.display = 'flex';
+    body.innerHTML = `
+        <div class="extra-info-modal">
+            <div class="extra-info-header">
+                <h2>${escapeHtml(ability.data.abilityName)}</h2>
+                <span class="extra-info-subtitle">Supporting Information</span>
+            </div>
+            <div class="extra-info-body-content">
+                ${renderMarkdown(ability.data.extraInfo)}
+            </div>
+        </div>`;
+}
+
+function closeExtraInfo() {
+    document.getElementById('ability-extra-info-overlay').style.display = 'none';
 }
 
 export function init() {
@@ -399,5 +439,21 @@ export function init() {
     const modalContent = document.getElementById('ability-modal-content');
     if (modalContent) {
         modalContent.addEventListener('click', (e) => e.stopPropagation());
+    }
+
+    // Extra info modal events
+    const extraOverlay = document.getElementById('ability-extra-info-overlay');
+    if (extraOverlay) {
+        extraOverlay.addEventListener('click', (e) => {
+            if (e.target === extraOverlay) closeExtraInfo();
+        });
+    }
+
+    const extraClose = document.getElementById('ability-extra-info-close');
+    if (extraClose) extraClose.addEventListener('click', closeExtraInfo);
+
+    const extraContent = document.getElementById('ability-extra-info-content');
+    if (extraContent) {
+        extraContent.addEventListener('click', (e) => e.stopPropagation());
     }
 }

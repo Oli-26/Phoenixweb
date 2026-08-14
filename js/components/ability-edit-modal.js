@@ -36,6 +36,11 @@ export function renderAbilityEditModal() {
                     <input type="text" id="edit-ability-tags" placeholder="Tag1, Tag2, Tag3" />
                 </div>
 
+                <div class="edit-field">
+                    <label for="edit-ability-extra">Supporting Info</label>
+                    <textarea id="edit-ability-extra" rows="4" placeholder="Supporting information / lore (markdown: # heading, - bullet, **bold**)"></textarea>
+                </div>
+
                 <div id="edit-ability-levels"></div>
 
                 <div class="edit-form-actions">
@@ -83,6 +88,7 @@ export function showAbilityEditModal(ability, onSave) {
     document.getElementById('edit-ability-power').value = d.power || 1;
     document.getElementById('edit-ability-complexity').value = d.complexity || 1;
     document.getElementById('edit-ability-tags').value = (d.tags || []).join(', ');
+    document.getElementById('edit-ability-extra').value = d.extraInfo || '';
 
     for (let i = 1; i <= 5; i++) {
         document.getElementById(`edit-ability-l${i}-cost`).value = d[`level${i}Cost`] || '';
@@ -122,7 +128,8 @@ export function showAbilityEditModal(ability, onSave) {
                 abilityDescription: document.getElementById('edit-ability-desc').value.trim(),
                 power: parseInt(document.getElementById('edit-ability-power').value) || 1,
                 complexity: parseInt(document.getElementById('edit-ability-complexity').value) || 1,
-                tags: tags
+                tags: tags,
+                extraInfo: document.getElementById('edit-ability-extra').value.trim()
             }
         };
 

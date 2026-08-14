@@ -19,6 +19,11 @@ import { renderMobCard, attachMobCardEvents } from '../components/mob-card.js';
 import { renderCardActionButtons, attachCardActionEvents } from '../components/card-actions.js';
 import { renderAbilityEditModal, showAbilityEditModal } from '../components/ability-edit-modal.js';
 import { renderMobEditModal, showMobEditModal } from '../components/mob-edit-modal.js';
+import { renderMarkdown } from '../utils/markdown.js';
+import {
+    isPublishingAvailable, getPublishState, loadMyDesigns,
+    publishAbility, publishMob, unpublish
+} from '../services/design-service.js';
 
 let savedAbilities = [];
 let savedMobsByWorld = {};
@@ -871,6 +876,28 @@ function executePrint() {
 
 // --- Modal Action Buttons ---
 
+function renderPublishButton(id, type) {
+    if (!isPublishingAvailable()) return '';
+
+    const state = getPublishState(type, id);
+    const published = state && state.visibility === 'public';
+    const status = published ? state.moderation_status : null;
+
+    const label = {
+        pending: 'Awaiting review',
+        approved: 'Published',
+        rejected: 'Rejected'
+    }[status] || 'Publish';
+
+    const reason = status === 'rejected' && state.moderation_reason
+        ? `<span class="modal-publish-reason">${escapeHtml(state.moderation_reason)}</span>`
+        : '';
+
+    return `<button class="modal-action-btn publish-btn${published ? ' is-published' : ''}" data-publish-id="${id}" data-publish-type="${type}">
+        ${label}${published ? ' \u2014 click to unpublish' : ''}
+    </button>${reason}`;
+}
+
 function renderModalActionButtons(id, type, world) {
     const custom = type === 'ability' ? isCustomAbility(id) : isCustomMob(id);
     const isFav = type === 'ability' ? isAbilityFavorited(id) : isMobFavorited(id);
@@ -922,6 +949,7 @@ function renderModalActionButtons(id, type, world) {
             </svg>
             Edit
         </button>`;
+        html += renderPublishButton(id, type);
         html += `<button class="modal-action-btn delete-custom-btn" data-delete-id="${id}" data-delete-type="${type}">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
                 <polyline points="3 6 5 6 21 6" stroke-linecap="round" stroke-linejoin="round"/>
@@ -933,6 +961,42 @@ function renderModalActionButtons(id, type, world) {
 
     html += '</div>';
     return html;
+}
+
+function bindPublishButton(container, itemData, world) {
+    const publishBtn = container.querySelector('.publish-btn');
+    if (!publishBtn) return;
+
+    publishBtn.addEventListener('click', async () => {
+        const id = publishBtn.dataset.publishId;
+        const kind = publishBtn.dataset.publishType;
+        const state = getPublishState(kind, id);
+        const published = state && state.visibility === 'public';
+
+        publishBtn.disabled = true;
+        const original = publishBtn.innerHTML;
+        publishBtn.textContent = published ? 'Unpublishing\u2026' : 'Publishing\u2026';
+        try {
+            if (published) {
+                await unpublish(kind, id);
+            } else if (kind === 'ability') {
+                await publishAbility(itemData);
+            } else {
+                await publishMob(itemData, world);
+            }
+            publishBtn.outerHTML = renderPublishButton(id, kind);
+            bindPublishButton(container, itemData, world);
+
+            const next = getPublishState(kind, id);
+            if (next && next.visibility === 'public' && next.moderation_status === 'pending') {
+                alert('Submitted. It goes public once a moderator approves it.');
+            }
+        } catch (err) {
+            publishBtn.disabled = false;
+            publishBtn.innerHTML = original;
+            alert('Could not publish: ' + err.message);
+        }
+    });
 }
 
 function attachModalActionEvents(container, itemData, world) {
@@ -973,6 +1037,8 @@ function attachModalActionEvents(container, itemData, world) {
             favBtn.innerHTML = isFav ? '&#9733; Favorited' : '&#9734; Add to Favorites';
         });
     }
+
+    bindPublishButton(container, itemData, world);
 
     // Duplicate & Edit
     const dupBtn = container.querySelector('.duplicate-btn');
@@ -1059,6 +1125,14 @@ function openAbilityModal(ability) {
     });
     attachModalActionEvents(body, ability);
     attachCardActionEvents(body, 'ability', ability);
+
+    const extraBtn = body.querySelector('.ability-extra-info-btn');
+    if (extraBtn) {
+        extraBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            openLibExtraInfo(ability.data.abilityName, ability.data.extraInfo);
+        });
+    }
 }
 
 function openMobModal(mob, world) {
@@ -1078,23 +1152,23 @@ function openMobModal(mob, world) {
     if (extraBtn) {
         extraBtn.addEventListener('click', (e) => {
             e.stopPropagation();
-            openLibExtraInfo(mob);
+            openLibExtraInfo(mob.data.name, mob.data.extraInfo);
         });
     }
 }
 
-function openLibExtraInfo(mob) {
+function openLibExtraInfo(title, extraInfo) {
     const overlay = document.getElementById('lib-extra-info-overlay');
     const body = document.getElementById('lib-extra-info-body');
     overlay.style.display = 'flex';
     body.innerHTML = `
         <div class="extra-info-modal">
             <div class="extra-info-header">
-                <h2>${escapeHtml(mob.data.name)}</h2>
+                <h2>${escapeHtml(title)}</h2>
                 <span class="extra-info-subtitle">Supporting Information</span>
             </div>
             <div class="extra-info-body-content">
-                <p>${escapeHtml(mob.data.extraInfo)}</p>
+                ${renderMarkdown(extraInfo)}
             </div>
         </div>`;
 }
@@ -1631,7 +1705,7 @@ function showBulkMovePopover() {
 function startNewAbility() {
     const blank = {
         id: crypto.randomUUID(),
-        data: { abilityName: '', abilityDescription: '', power: 1, complexity: 1, tags: [] }
+        data: { abilityName: '', abilityDescription: '', power: 1, complexity: 1, tags: [], extraInfo: '' }
     };
     for (let i = 1; i <= 5; i++) {
         blank.data[`level${i}Cost`] = '';
@@ -1724,6 +1798,9 @@ export function init() {
             reader.readAsText(file);
         });
     }
+
+    // Publish state is only needed for the button label; failure must not break the page.
+    loadMyDesigns().catch(err => console.warn('Publish state unavailable:', err.message));
 
     attachLibChromeEvents();
     attachLibCardEvents();

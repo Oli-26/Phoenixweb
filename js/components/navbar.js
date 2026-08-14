@@ -1,4 +1,5 @@
 import { signIn, signOut, onAuthChange, isConfigured } from '../services/auth-service.js';
+import { isAdmin, loadMyDesigns } from '../services/design-service.js';
 
 export function renderNavbar() {
     const hash = location.hash || '#/';
@@ -56,6 +57,13 @@ export function renderNavbar() {
                     </svg>
                     <span>Library</span>
                 </a>
+                <a href="#/review" class="${linkClass('#/review')}" id="nav-review" hidden>
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M9 11l3 3L22 4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span>Review</span>
+                </a>
             </div>
             <div class="nav-account" id="nav-account"></div>
         </div>
@@ -86,10 +94,25 @@ function renderAccount(container, user) {
     }
 }
 
+// The Review link is a convenience only — RLS is what actually gates the queue.
+async function refreshReviewLink() {
+    const link = document.getElementById('nav-review');
+    if (!link || !isConfigured()) return;
+    try {
+        await loadMyDesigns();
+    } catch {
+        return;
+    }
+    link.hidden = !isAdmin();
+}
+
 function initAccount() {
     const container = document.getElementById('nav-account');
     if (!container || !isConfigured()) return;
-    onAuthChange(user => renderAccount(container, user));
+    onAuthChange(user => {
+        renderAccount(container, user);
+        refreshReviewLink();
+    });
 }
 
 export function initNavbar() {

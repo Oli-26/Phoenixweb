@@ -1,2 +1,12 @@
 [build]
   publish = "publish"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    # No 'unsafe-inline' in script-src: inline scripts live in js/*.js so an injected
+    # <script> or on* handler cannot run even if escaping is ever missed.
+    # frame-ancestors is deliberately unset — the app is embedded in a Wix page.
+    Content-Security-Policy = "default-src 'self'; script-src 'self' https://esm.sh; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://*.supabase.co https://esm.sh; object-src 'none'; base-uri 'self'; form-action 'self'"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
