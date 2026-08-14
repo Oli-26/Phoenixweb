@@ -1,3 +1,7 @@
+import {
+    sanitizeAbility, sanitizeMob, sanitizeFolder, sanitizeFolderMap, safeId
+} from '../utils/sanitize.js';
+
 const ABILITY_KEY = 'phoenixAbilityLibrary';
 const MOB_KEY = 'phoenixMobLibrary';
 const ABILITY_FAV_KEY = 'phoenixAbilityFavorites';
@@ -139,8 +143,9 @@ export function importLibrary(jsonString) {
 
     // Merge with existing (no duplicates)
     const existingAbilities = getSavedAbilityIds();
-    for (const id of abilities) {
-        if (typeof id === 'string' && !existingAbilities.includes(id)) {
+    for (const raw of abilities) {
+        const id = safeId(raw);
+        if (id && !existingAbilities.includes(id)) {
             existingAbilities.push(id);
         }
     }
@@ -148,8 +153,10 @@ export function importLibrary(jsonString) {
 
     const existingMobs = getSavedMobEntries();
     for (const entry of mobs) {
-        if (entry && entry.id && entry.world && !existingMobs.some(e => e.id === entry.id)) {
-            existingMobs.push({ id: entry.id, world: entry.world });
+        const id = entry && safeId(entry.id);
+        const world = entry && typeof entry.world === 'string' ? entry.world.slice(0, 60) : '';
+        if (id && world && !existingMobs.some(e => e.id === id)) {
+            existingMobs.push({ id, world });
         }
     }
     localStorage.setItem(MOB_KEY, JSON.stringify(existingMobs));
@@ -180,8 +187,9 @@ export function importLibrary(jsonString) {
     const customAbilities = data.customAbilities || [];
     if (Array.isArray(customAbilities)) {
         const existing = getCustomAbilities();
-        for (const ability of customAbilities) {
-            if (ability && ability.id && !existing.some(a => a.id === ability.id)) {
+        for (const raw of customAbilities) {
+            const ability = sanitizeAbility(raw);
+            if (ability && !existing.some(a => a.id === ability.id)) {
                 existing.push(ability);
             }
         }
@@ -192,8 +200,9 @@ export function importLibrary(jsonString) {
     const customMobs = data.customMobs || [];
     if (Array.isArray(customMobs)) {
         const existing = getCustomMobs();
-        for (const mob of customMobs) {
-            if (mob && mob.id && !existing.some(m => m.id === mob.id)) {
+        for (const raw of customMobs) {
+            const mob = sanitizeMob(raw);
+            if (mob && !existing.some(m => m.id === mob.id)) {
                 existing.push(mob);
             }
         }
@@ -203,30 +212,32 @@ export function importLibrary(jsonString) {
     // Merge folders
     if (Array.isArray(data.abilityFolders)) {
         const existing = getAbilityFolders();
-        for (const f of data.abilityFolders) {
-            if (f && f.id && f.name && !existing.some(e => e.id === f.id)) {
-                existing.push({ id: f.id, name: f.name });
+        for (const raw of data.abilityFolders) {
+            const f = sanitizeFolder(raw);
+            if (f && !existing.some(e => e.id === f.id)) {
+                existing.push(f);
             }
         }
         localStorage.setItem(ABILITY_FOLDERS_KEY, JSON.stringify(existing));
     }
     if (Array.isArray(data.mobFolders)) {
         const existing = getMobFolders();
-        for (const f of data.mobFolders) {
-            if (f && f.id && f.name && !existing.some(e => e.id === f.id)) {
-                existing.push({ id: f.id, name: f.name });
+        for (const raw of data.mobFolders) {
+            const f = sanitizeFolder(raw);
+            if (f && !existing.some(e => e.id === f.id)) {
+                existing.push(f);
             }
         }
         localStorage.setItem(MOB_FOLDERS_KEY, JSON.stringify(existing));
     }
     if (data.abilityFolderMap && typeof data.abilityFolderMap === 'object') {
         const map = getAbilityFolderMap();
-        Object.assign(map, data.abilityFolderMap);
+        Object.assign(map, sanitizeFolderMap(data.abilityFolderMap));
         localStorage.setItem(ABILITY_FOLDER_MAP_KEY, JSON.stringify(map));
     }
     if (data.mobFolderMap && typeof data.mobFolderMap === 'object') {
         const map = getMobFolderMap();
-        Object.assign(map, data.mobFolderMap);
+        Object.assign(map, sanitizeFolderMap(data.mobFolderMap));
         localStorage.setItem(MOB_FOLDER_MAP_KEY, JSON.stringify(map));
     }
 
@@ -299,7 +310,9 @@ export function getCustomAbilities() {
     }
 }
 
-export function saveCustomAbility(ability) {
+export function saveCustomAbility(input) {
+    const ability = sanitizeAbility(input);
+    if (!ability) return;
     const items = getCustomAbilities();
     const idx = items.findIndex(a => a.id === ability.id);
     if (idx !== -1) {
@@ -334,7 +347,9 @@ export function getCustomMobs() {
     }
 }
 
-export function saveCustomMob(mob) {
+export function saveCustomMob(input) {
+    const mob = sanitizeMob(input);
+    if (!mob) return;
     const items = getCustomMobs();
     const idx = items.findIndex(m => m.id === mob.id);
     if (idx !== -1) {

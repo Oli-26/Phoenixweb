@@ -238,7 +238,7 @@ function renderForm(mob, world) {
 
         <div class="edit-field">
             <label for="edit-mob-extra">Supporting Info</label>
-            <textarea id="edit-mob-extra" rows="3" placeholder="Supporting information / lore">${escapeHtml(d.extraInfo || '')}</textarea>
+            <textarea id="edit-mob-extra" rows="4" placeholder="Supporting information / lore (markdown: # heading, - bullet, **bold**)">${escapeHtml(d.extraInfo || '')}</textarea>
         </div>
 
         <div class="edit-form-actions">

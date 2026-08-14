@@ -1,11 +1,5 @@
 import { isMobSaved, addMob, removeMob } from '../services/storage-service.js';
-
-function escapeHtml(str) {
-    if (!str) return '';
-    const div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
-}
+import { escapeHtml } from '../utils/sanitize.js';
 
 function renderStatRow(label1, value1, label2, value2) {
     return `<tr>
@@ -101,7 +95,7 @@ export function renderMobCard(mob, world) {
                 <span class="stat-badge">Power: ${parseInt(d.power) || 0}</span>
                 <span class="stat-badge">Complexity: ${parseInt(d.complexity) || 0}</span>
             </div>` : ''}
-            <button class="save-button ${saved ? 'saved' : ''}" data-mob-save-id="${mob.id}" data-mob-world="${world || ''}">
+            <button class="save-button ${saved ? 'saved' : ''}" data-mob-save-id="${escapeHtml(mob.id)}" data-mob-world="${escapeHtml(world || '')}">
                 <span>${saved ? '\u2605 In Library' : 'Add to Library'}</span>
             </button>
         </div>
@@ -136,7 +130,7 @@ export function renderMobCard(mob, world) {
                     ${weaponsHtml}
                 </div>` : ''}
 
-                <div class="mob-section">
+                <div class="mob-section mob-section-tactics">
                     <div class="mob-section-header">Tactics & Abilities</div>
                     ${d.tacticsDescription ? `<p class="mob-tactics">${escapeHtml(d.tacticsDescription)}</p>` : ''}
                     ${abilitiesHtml}
@@ -152,7 +146,7 @@ export function renderMobCard(mob, world) {
 
         <div class="mob-card-footer">
             <div class="mob-tag-bubbles">${tagsHtml}</div>
-            ${d.extraInfo ? `<button class="mob-extra-info-btn" data-mob-id="${mob.id}">Supporting Info</button>` : ''}
+            ${d.extraInfo ? `<button class="mob-extra-info-btn" data-mob-id="${escapeHtml(mob.id)}">Supporting Info</button>` : ''}
         </div>
     </div>`;
 }
