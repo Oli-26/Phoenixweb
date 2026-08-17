@@ -30,7 +30,11 @@ export async function loadMyDesigns() {
 
     const client = await getClient();
     const [designs, profile] = await Promise.all([
-        client.from('designs').select('id, kind, local_id, visibility, moderation_status, moderation_reason, hidden'),
+        // RLS also exposes other people's approved designs, and their local_id can
+        // collide with one of ours — so scope this to the owner explicitly.
+        client.from('designs')
+            .select('id, kind, local_id, visibility, moderation_status, moderation_reason, hidden')
+            .eq('owner', getUser().id),
         client.from('profiles').select('is_admin, trust').eq('id', getUser().id).maybeSingle()
     ]);
 
@@ -90,6 +94,25 @@ export async function unpublish(kind, localId) {
     if (error) throw error;
     myDesigns.set(key(kind, localId), data);
     return data;
+}
+
+// --- Community (public, readable signed-out) ---
+
+export async function listPublic() {
+    if (!isConfigured()) return [];
+
+    const client = await getClient();
+    const { data, error } = await client
+        .from('designs')
+        .select('id, kind, local_id, name, world, data, created_at')
+        .eq('visibility', 'public')
+        .eq('moderation_status', 'approved')
+        .eq('hidden', false)
+        .order('created_at', { ascending: false })
+        .limit(200);
+
+    if (error) throw error;
+    return (data || []).map(toLocalShape).filter(Boolean);
 }
 
 // --- Review queue (admin) ---

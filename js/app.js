@@ -3,6 +3,7 @@ import { loadMobs } from './services/mob-service.js';
 import * as browser from './pages/browser.js';
 import * as library from './pages/library.js';
 import * as mobBrowser from './pages/mob-browser.js';
+import * as community from './pages/community.js';
 import * as review from './pages/review.js';
 import { initNavbar } from './components/navbar.js';
 import { initAuth } from './services/auth-service.js';
@@ -10,6 +11,7 @@ import { initAuth } from './services/auth-service.js';
 const routes = {
     '/': browser,
     '/library': library,
+    '/community': community,
     '/review': review,
     '/barbarus': {
         render: () => mobBrowser.render('barbarus'),

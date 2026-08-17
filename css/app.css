@@ -5574,3 +5574,57 @@ body.lib-dragging[data-drag-type="mob"] [data-active-key^="a-"] {
     border-color: #374151;
     color: #e5e7eb;
 }
+
+/* --- Community --- */
+
+.community-modal-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.community-meta {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.8rem;
+    color: var(--text-secondary, #6b7280);
+}
+
+.community-copy-btn {
+    color: #2563eb;
+    border-color: #93c5fd;
+}
+
+.community-copy-btn:hover:not(:disabled) {
+    background: #eff6ff;
+    border-color: #2563eb;
+}
+
+.community-copy-btn:disabled {
+    color: var(--text-secondary, #6b7280);
+    border-color: var(--gray-300, #d1d5db);
+    cursor: default;
+    transform: none;
+}
+
+.community-preview {
+    overflow-x: auto;
+}
+
+/* Card save buttons address the canonical directory by id; a community design
+   is not in it, so copying is the only sane action here. */
+.community-preview .save-button {
+    display: none;
+}
+
+.community-kind-tag {
+    background: #ede9fe;
+    color: #5b21b6;
+}
+
+[data-theme="dark"] .community-kind-tag {
+    background: #3730a3;
+    color: #e0e7ff;
+}
