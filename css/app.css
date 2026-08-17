@@ -5628,3 +5628,10 @@ body.lib-dragging[data-drag-type="mob"] [data-active-key^="a-"] {
     background: #3730a3;
     color: #e0e7ff;
 }
+
+/* Word labels, not the single digits .numeric-filters is sized for. */
+.numeric-filters.community-kind-filters button {
+    width: auto;
+    padding: 0 14px;
+    white-space: nowrap;
+}

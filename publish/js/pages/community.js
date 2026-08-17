@@ -63,7 +63,7 @@ export function render() {
                 <div class="filters-container">
                     <div class="filter-group">
                         <div class="filter-label">Type</div>
-                        <div class="numeric-filters" id="community-kind">
+                        <div class="numeric-filters community-kind-filters" id="community-kind">
                             <button data-kind="all">All</button>
                             <button data-kind="ability">Abilities</button>
                             <button data-kind="mob">Mobs</button>
