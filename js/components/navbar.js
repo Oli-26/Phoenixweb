@@ -1,5 +1,11 @@
-import { signIn, signOut, onAuthChange, isConfigured } from '../services/auth-service.js';
+import { signIn, signOut, onAuthChange, isConfigured, getUser } from '../services/auth-service.js';
 import { isAdmin, loadMyDesigns } from '../services/design-service.js';
+
+// The navbar is re-rendered on every route change, so both the auth
+// subscription and the admin lookup have to survive that without stacking up.
+let unsubscribeAuth = null;
+let adminCached = false;
+let adminLoadedFor = null;
 
 export function renderNavbar() {
     const hash = location.hash || '#/';
@@ -65,7 +71,7 @@ export function renderNavbar() {
                     </svg>
                     <span>Community</span>
                 </a>
-                <a href="#/review" class="${linkClass('#/review')}" id="nav-review" hidden>
+                <a href="#/review" class="${linkClass('#/review')}" id="nav-review" ${adminCached ? '' : 'hidden'}>
                     <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                         <path d="M9 11l3 3L22 4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                         <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -106,19 +112,40 @@ function renderAccount(container, user) {
 async function refreshReviewLink() {
     const link = document.getElementById('nav-review');
     if (!link || !isConfigured()) return;
-    try {
-        await loadMyDesigns();
-    } catch {
+
+    const userId = getUser()?.id ?? null;
+    if (!userId) {
+        adminCached = false;
+        adminLoadedFor = null;
+        link.hidden = true;
         return;
     }
-    link.hidden = !isAdmin();
+
+    // Only hit the network when the account actually changed; navigating
+    // between pages must not re-query on every render.
+    if (adminLoadedFor !== userId) {
+        try {
+            await loadMyDesigns();
+        } catch {
+            return;
+        }
+        adminCached = isAdmin();
+        adminLoadedFor = userId;
+    }
+
+    link.hidden = !adminCached;
 }
 
 function initAccount() {
     const container = document.getElementById('nav-account');
     if (!container || !isConfigured()) return;
-    onAuthChange(user => {
-        renderAccount(container, user);
+
+    // Re-subscribing on every navigation would leave listeners writing into
+    // detached navbars and refire the admin lookup once per stale listener.
+    if (unsubscribeAuth) unsubscribeAuth();
+    unsubscribeAuth = onAuthChange(user => {
+        const el = document.getElementById('nav-account');
+        if (el) renderAccount(el, user);
         refreshReviewLink();
     });
 }
