@@ -5703,3 +5703,17 @@ body.lib-dragging[data-drag-type="mob"] [data-active-key^="a-"] {
     border-color: #10b981;
     color: #d1fae5;
 }
+
+/* .nav-link sets display:flex, which outranks the UA stylesheet's
+   [hidden] { display: none } — so hidden nav links stayed visible. */
+.navbar-links a[hidden] {
+    display: none !important;
+}
+
+/* The review page had no horizontal padding; there is no .container rule in
+   this stylesheet, so its text sat flush against the viewport edge. */
+.review-page {
+    padding: var(--spacing-8) var(--spacing-6) 60px;
+    max-width: 1100px;
+    margin: 0 auto;
+}
