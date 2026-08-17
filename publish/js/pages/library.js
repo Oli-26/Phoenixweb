@@ -19,7 +19,7 @@ import { renderMobCard, attachMobCardEvents } from '../components/mob-card.js';
 import { renderCardActionButtons, attachCardActionEvents } from '../components/card-actions.js';
 import { renderAbilityEditModal, showAbilityEditModal } from '../components/ability-edit-modal.js';
 import { renderMobEditModal, showMobEditModal } from '../components/mob-edit-modal.js';
-import { renderMarkdown } from '../utils/markdown.js';
+import { renderMarkdown, markdownToPlain } from '../utils/markdown.js';
 import {
     isPublishingAvailable, getPublishState, loadMyDesigns,
     publishAbility, publishMob, unpublish
@@ -56,9 +56,10 @@ function escapeHtml(str) {
 }
 
 function truncateDescription(description) {
-    if (!description) return '';
-    if (description.length <= 100) return description;
-    return description.substring(0, 97) + '...';
+    const plain = markdownToPlain(description);
+    if (!plain) return '';
+    if (plain.length <= 100) return plain;
+    return plain.substring(0, 97) + '...';
 }
 
 function loadSavedAbilities() {
@@ -965,7 +966,7 @@ function renderModalActionButtons(id, type, world) {
 
 function bindPublishButton(container, itemData, world) {
     const publishBtn = container.querySelector('.publish-btn');
-    if (!publishBtn) return;
+    if (!publishBtn || publishBtn.disabled) return;
 
     publishBtn.addEventListener('click', async () => {
         const id = publishBtn.dataset.publishId;
