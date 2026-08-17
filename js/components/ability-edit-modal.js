@@ -17,7 +17,7 @@ export function renderAbilityEditModal() {
 
                 <div class="edit-field">
                     <label for="edit-ability-desc">Description</label>
-                    <textarea id="edit-ability-desc" rows="3" placeholder="Ability description"></textarea>
+                    <textarea id="edit-ability-desc" rows="3" placeholder="Ability description (markdown: - bullet, **bold**, new lines kept)"></textarea>
                 </div>
 
                 <div class="edit-row">
@@ -65,7 +65,7 @@ function renderLevelFields() {
                 </div>
                 <div class="edit-field" style="flex: 1;">
                     <label for="edit-ability-l${i}-desc">Description</label>
-                    <textarea id="edit-ability-l${i}-desc" rows="2" placeholder="Level ${i} description"></textarea>
+                    <textarea id="edit-ability-l${i}-desc" rows="2" placeholder="Level ${i} description (markdown: - bullet, **bold**, new lines kept)"></textarea>
                 </div>
             </div>
         </div>`;

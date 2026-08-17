@@ -2,7 +2,7 @@ import { getAllMobs, getAllTags, getWorldName } from '../services/mob-service.js
 import { renderNavbar } from '../components/navbar.js';
 import { renderMobCard, attachMobCardEvents } from '../components/mob-card.js';
 import { renderCardActionButtons, attachCardActionEvents } from '../components/card-actions.js';
-import { renderMarkdown } from '../utils/markdown.js';
+import { renderMarkdown, markdownToPlain } from '../utils/markdown.js';
 
 let searchTerm = '';
 let selectedTags = [];
@@ -13,9 +13,10 @@ let currentWorld = '';
 let searchDebounceTimer = null;
 
 function truncateDescription(description) {
-    if (!description) return '';
-    if (description.length <= 100) return description;
-    return description.substring(0, 97) + '...';
+    const plain = markdownToPlain(description);
+    if (!plain) return '';
+    if (plain.length <= 100) return plain;
+    return plain.substring(0, 97) + '...';
 }
 
 function escapeHtml(str) {

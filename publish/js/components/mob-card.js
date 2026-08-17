@@ -1,5 +1,6 @@
 import { isMobSaved, addMob, removeMob } from '../services/storage-service.js';
 import { escapeHtml } from '../utils/sanitize.js';
+import { renderMarkdown } from '../utils/markdown.js';
 
 function renderStatRow(label1, value1, label2, value2) {
     return `<tr>
@@ -76,7 +77,7 @@ export function renderMobCard(mob, world) {
                 <span class="mob-ability-name">${escapeHtml(a.name)}</span>
                 <span class="mob-ability-cost">${escapeHtml(a.cost)}</span>
             </div>
-            <p class="mob-ability-desc">${escapeHtml(a.description)}</p>
+            <div class="mob-ability-desc md-body">${renderMarkdown(a.description)}</div>
         </div>`
     ).join('');
 
@@ -107,7 +108,7 @@ export function renderMobCard(mob, world) {
 
             <div class="mob-card-body">
                 <div class="mob-section">
-                    <p class="mob-description">${escapeHtml(d.description)}</p>
+                    <div class="mob-description md-body">${renderMarkdown(d.description)}</div>
                 </div>
 
                 <div class="mob-vitals">
@@ -132,7 +133,7 @@ export function renderMobCard(mob, world) {
 
                 <div class="mob-section mob-section-tactics">
                     <div class="mob-section-header">Tactics & Abilities</div>
-                    ${d.tacticsDescription ? `<p class="mob-tactics">${escapeHtml(d.tacticsDescription)}</p>` : ''}
+                    ${d.tacticsDescription ? `<div class="mob-tactics md-body">${renderMarkdown(d.tacticsDescription)}</div>` : ''}
                     ${abilitiesHtml}
                 </div>
 

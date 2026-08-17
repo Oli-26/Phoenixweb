@@ -1,6 +1,7 @@
 import { isAbilitySaved, addAbility, removeAbility } from '../services/storage-service.js';
 import { hasLevel, getLevelDescription, getLevelCost, isPassive } from '../services/ability-service.js';
 import { escapeHtml } from '../utils/sanitize.js';
+import { renderMarkdown } from '../utils/markdown.js';
 
 function getSubtitle(ability) {
     const worldTags = ['Barbarus', 'Rifts and Rivets', 'The City', 'PHOENIX'];
@@ -23,7 +24,7 @@ function renderLevelSection(data, level) {
         <div class="level-content">
             ${has
                 ? `<div class="ability-type">${passive ? 'Passive' : escapeHtml(cost)}</div>
-                   <p class="level-description">${escapeHtml(desc)}</p>`
+                   <div class="level-description md-body">${renderMarkdown(desc)}</div>`
                 : `<div class="ability-type">N/A</div>
                    <p class="level-description na">N/A</p>`
             }
@@ -67,7 +68,7 @@ export function renderAbilityCard(ability) {
                 <div class="card-content">
                     <div class="description-section">
                         <h3>Description</h3>
-                        <p>${escapeHtml(data.abilityDescription)}</p>
+                        <div class="md-body">${renderMarkdown(data.abilityDescription)}</div>
                     </div>
                     ${leftLevels}
                 </div>

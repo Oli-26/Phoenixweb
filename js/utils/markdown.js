@@ -16,6 +16,7 @@ function safeHref(url) {
 
 function inline(text) {
     let out = escapeHtml(text);
+    out = out.replace(/&lt;br\s*\/?&gt;/gi, '<br>');   // authors hand-type <br>; honour it, nothing else HTML
     out = out.replace(/`([^`]+)`/g, '<code>$1</code>');
     out = out.replace(/\[([^\]]+)\]\(([^)]*)\)/g, (m, label, url) => {
         const href = safeHref(url);
@@ -28,6 +29,22 @@ function inline(text) {
     out = out.replace(/(^|[\s(])\*([^*\n]+)\*/g, '$1<em>$2</em>');
     out = out.replace(/(^|[\s(])_([^_\n]+)_/g, '$1<em>$2</em>');
     return out;
+}
+
+// Plain-text view of markdown source, for previews/truncation where syntax would be noise.
+export function markdownToPlain(text) {
+    if (!text) return '';
+    return String(text)
+        .replace(/\r\n?/g, '\n')
+        .replace(/<br\s*\/?>/gi, ' ')
+        .replace(/^\s*(#{1,6}\s+|>\s?|[-*+]\s+)/gm, '')
+        .replace(/^\s*([-*_]\s*){3,}$/gm, '')
+        .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+        .replace(/`([^`]+)`/g, '$1')
+        .replace(/(\*\*|__)([^*_]+)\1/g, '$2')
+        .replace(/(^|[\s(])[*_]([^*_\n]+)[*_]/g, '$1$2')
+        .replace(/\s*\n+\s*/g, ' ')
+        .trim();
 }
 
 export function renderMarkdown(text) {

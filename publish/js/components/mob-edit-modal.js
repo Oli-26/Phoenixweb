@@ -155,7 +155,7 @@ function renderForm(mob, world) {
 
         <div class="edit-field">
             <label for="edit-mob-desc">Description</label>
-            <textarea id="edit-mob-desc" rows="3" placeholder="Description">${escapeHtml(d.description || '')}</textarea>
+            <textarea id="edit-mob-desc" rows="3" placeholder="Description (markdown: - bullet, **bold**, new lines kept)">${escapeHtml(d.description || '')}</textarea>
         </div>
 
         <div class="edit-row">
