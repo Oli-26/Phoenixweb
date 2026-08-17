@@ -54,17 +54,17 @@ async function start() {
     // Non-blocking: the app is fully usable signed-out, so auth must never gate startup.
     initAuth().catch(err => console.warn('Auth init failed:', err.message));
 
-    // Global Escape key to close modals
+    // Global Escape key to close modals. Overlays share a z-index, so the last
+    // visible one in DOM order is the one painted on top — close that, not the
+    // card sitting underneath it.
     document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') {
-            const overlays = document.querySelectorAll('.modal-overlay');
-            for (const overlay of overlays) {
-                if (overlay.style.display !== 'none' && overlay.style.display !== '') {
-                    overlay.style.display = 'none';
-                    break;
-                }
-            }
-        }
+        if (e.key !== 'Escape') return;
+
+        const overlays = [...document.querySelectorAll('.modal-overlay')].filter(
+            o => o.style.display !== 'none' && o.style.display !== ''
+        );
+        const top = overlays[overlays.length - 1];
+        if (top) top.style.display = 'none';
     });
 }
 

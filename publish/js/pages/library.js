@@ -964,6 +964,25 @@ function renderModalActionButtons(id, type, world) {
     return html;
 }
 
+// Server-side publish rules surface as raw Postgres exceptions; say what they mean.
+function publishErrorMessage(err) {
+    const raw = err?.message || '';
+
+    if (raw.includes('Publish limit reached')) {
+        return 'You have published 10 designs today, which is the daily limit. Try again tomorrow.';
+    }
+    if (raw.includes('cannot publish designs')) {
+        return 'This account is not allowed to publish designs. Get in touch if you think that is wrong.';
+    }
+    if (raw.includes('pg_column_size') || raw.includes('violates check constraint')) {
+        return 'This design is too large or has a field that failed validation, so it was not published.';
+    }
+    if (/JWT|not authenticated|401/i.test(raw)) {
+        return 'Your session expired. Sign in again and retry.';
+    }
+    return 'Could not publish: ' + raw;
+}
+
 function bindPublishButton(container, itemData, world) {
     const publishBtn = container.querySelector('.publish-btn');
     if (!publishBtn || publishBtn.disabled) return;
@@ -995,7 +1014,7 @@ function bindPublishButton(container, itemData, world) {
         } catch (err) {
             publishBtn.disabled = false;
             publishBtn.innerHTML = original;
-            alert('Could not publish: ' + err.message);
+            alert(publishErrorMessage(err));
         }
     });
 }

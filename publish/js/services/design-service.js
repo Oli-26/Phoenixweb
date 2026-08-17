@@ -98,21 +98,76 @@ export async function unpublish(kind, localId) {
 
 // --- Community (public, readable signed-out) ---
 
-export async function listPublic() {
+export async function listPublic({ sort = 'new' } = {}) {
     if (!isConfigured()) return [];
 
     const client = await getClient();
-    const { data, error } = await client
+    let query = client
         .from('designs')
-        .select('id, kind, local_id, name, world, data, created_at')
+        .select('id, kind, local_id, name, world, data, created_at, vote_count')
         .eq('visibility', 'public')
         .eq('moderation_status', 'approved')
-        .eq('hidden', false)
-        .order('created_at', { ascending: false })
-        .limit(200);
+        .eq('hidden', false);
+
+    query = sort === 'top'
+        ? query.order('vote_count', { ascending: false }).order('created_at', { ascending: false })
+        : query.order('created_at', { ascending: false });
+
+    const { data, error } = await query.limit(200);
 
     if (error) throw error;
     return (data || []).map(toLocalShape).filter(Boolean);
+}
+
+// Individual votes are private, so this only ever returns the caller's own.
+export async function loadMyVotes() {
+    if (!isPublishingAvailable()) return new Set();
+
+    const client = await getClient();
+    const { data, error } = await client
+        .from('design_votes')
+        .select('design_id')
+        .eq('voter', getUser().id);
+
+    if (error) throw error;
+    return new Set((data || []).map(row => row.design_id));
+}
+
+// Returns the design's new vote count.
+export async function setVote(designId, voted) {
+    const client = await getClient();
+
+    if (voted) {
+        const { error } = await client
+            .from('design_votes')
+            .insert({ design_id: designId, voter: getUser().id });
+        if (error && error.code !== '23505') throw error;   // 23505: already voted
+    } else {
+        const { error } = await client
+            .from('design_votes')
+            .delete()
+            .eq('design_id', designId)
+            .eq('voter', getUser().id);
+        if (error) throw error;
+    }
+
+    const { data, error: readError } = await client
+        .from('designs')
+        .select('vote_count')
+        .eq('id', designId)
+        .single();
+
+    if (readError) throw readError;
+    return data.vote_count;
+}
+
+export async function reportDesign(designId, reason) {
+    const client = await getClient();
+    const { error } = await client
+        .from('design_reports')
+        .insert({ design_id: designId, reporter: getUser().id, reason });
+
+    if (error && error.code !== '23505') throw error;       // 23505: already reported
 }
 
 // --- Review queue (admin) ---
@@ -128,6 +183,46 @@ export async function listPending() {
 
     if (error) throw error;
     return (data || []).map(toLocalShape).filter(Boolean);
+}
+
+// Anything with reports outstanding, hidden or not — admin only by RLS.
+export async function listReported() {
+    const client = await getClient();
+    const { data, error } = await client
+        .from('designs')
+        .select('id, kind, local_id, name, world, data, created_at, hidden, report_count')
+        .gt('report_count', 0)
+        .order('report_count', { ascending: false });
+
+    if (error) throw error;
+
+    const entries = (data || []).map(toLocalShape).filter(Boolean);
+    if (entries.length === 0) return entries;
+
+    const { data: reasons, error: reasonError } = await client
+        .from('design_reports')
+        .select('design_id, reason, created_at')
+        .in('design_id', entries.map(e => e.row.id));
+
+    if (reasonError) throw reasonError;
+
+    for (const entry of entries) {
+        entry.reports = (reasons || []).filter(r => r.design_id === entry.row.id);
+    }
+    return entries;
+}
+
+export async function setHidden(id, hidden) {
+    const client = await getClient();
+    const { error } = await client.from('designs').update({ hidden }).eq('id', id);
+    if (error) throw error;
+}
+
+// Clears the report queue for a design an admin has judged fine.
+export async function clearReports(id) {
+    const client = await getClient();
+    const { error } = await client.from('design_reports').delete().eq('design_id', id);
+    if (error) throw error;
 }
 
 export async function moderate(id, status, reason) {

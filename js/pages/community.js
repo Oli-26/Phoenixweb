@@ -3,16 +3,21 @@ import { renderAbilityCard } from '../components/ability-card.js';
 import { renderMobCard } from '../components/mob-card.js';
 import { escapeHtml } from '../utils/sanitize.js';
 import { renderMarkdown, markdownToPlain } from '../utils/markdown.js';
-import { listPublic } from '../services/design-service.js';
+import {
+    listPublic, loadMyVotes, setVote, reportDesign, isPublishingAvailable
+} from '../services/design-service.js';
 import { isConfigured } from '../services/supabase-client.js';
 import { saveCustomAbility, saveCustomMob } from '../services/storage-service.js';
 
 let entries = [];
 let kindFilter = 'all';
+let sort = 'new';
 let searchTerm = '';
 let searchDebounceTimer = null;
 // Design row ids copied this session, so the button can report itself.
 const copied = new Set();
+let myVotes = new Set();
+const reportedThisSession = new Set();
 
 function titleOf({ kind, item }) {
     return kind === 'ability' ? item.data.abilityName : item.data.name;
@@ -67,6 +72,13 @@ export function render() {
                             <button data-kind="all">All</button>
                             <button data-kind="ability">Abilities</button>
                             <button data-kind="mob">Mobs</button>
+                        </div>
+                    </div>
+                    <div class="filter-group">
+                        <div class="filter-label">Sort</div>
+                        <div class="numeric-filters community-kind-filters" id="community-sort">
+                            <button data-sort="new">Newest</button>
+                            <button data-sort="top">Most liked</button>
                         </div>
                     </div>
                 </div>
@@ -125,6 +137,7 @@ function renderGrid() {
                 <span class="mini-tag community-kind-tag">${kind === 'ability' ? 'Ability' : 'Mob'}</span>
                 ${tags.slice(0, 2).map(t => `<span class="mini-tag">${escapeHtml(t)}</span>`).join('')}
                 ${tags.length > 2 ? `<span class="mini-tag">+${tags.length - 2}</span>` : ''}
+                <span class="community-vote-tally ${myVotes.has(row.id) ? 'voted' : ''}">👍 ${row.vote_count || 0}</span>
             </div>
         </div>`;
     }).join('');
@@ -148,12 +161,27 @@ function openModal(entry) {
     overlay.style.display = 'flex';
     // The card's own save button targets the canonical directory by id, which a
     // community design is not in — copying to the library is the action here.
+    const signedIn = isPublishingAvailable();
+    const voted = myVotes.has(row.id);
+    const reported = reportedThisSession.has(row.id);
+
     body.innerHTML = `
         <div class="community-modal-head">
             <span class="community-meta">${kind === 'ability' ? 'Ability' : 'Mob'} · shared ${escapeHtml(shared)}</span>
-            <button class="modal-action-btn community-copy-btn" ${done ? 'disabled' : ''}>
-                ${done ? '✓ Copied to library' : 'Copy to my library'}
-            </button>
+            <div class="community-modal-actions">
+                <button class="modal-action-btn community-vote-btn ${voted ? 'voted' : ''}"
+                    ${signedIn ? '' : 'disabled title="Sign in to vote"'}>
+                    👍 <span class="community-vote-count">${row.vote_count || 0}</span>
+                </button>
+                <button class="modal-action-btn community-copy-btn" ${done ? 'disabled' : ''}>
+                    ${done ? '✓ Copied to library' : 'Copy to my library'}
+                </button>
+                <button class="modal-action-btn community-report-btn"
+                    ${signedIn && !reported ? '' : 'disabled'}
+                    title="${signedIn ? 'Report this design' : 'Sign in to report'}">
+                    ${reported ? 'Reported' : 'Report'}
+                </button>
+            </div>
         </div>
         <div class="community-preview">
             ${kind === 'ability' ? renderAbilityCard(item) : renderMobCard(item, item.world)}
@@ -164,6 +192,48 @@ function openModal(entry) {
         extraBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             openExtraInfo(entry);
+        });
+    }
+
+    const voteBtn = body.querySelector('.community-vote-btn');
+    if (signedIn) {
+        voteBtn.addEventListener('click', async () => {
+            const next = !myVotes.has(row.id);
+            voteBtn.disabled = true;
+            try {
+                const count = await setVote(row.id, next);
+                if (next) myVotes.add(row.id); else myVotes.delete(row.id);
+                row.vote_count = count;
+                voteBtn.classList.toggle('voted', next);
+                voteBtn.querySelector('.community-vote-count').textContent = count;
+                refreshGrid();
+            } catch (err) {
+                alert('Could not save your vote: ' + err.message);
+            }
+            voteBtn.disabled = false;
+        });
+    }
+
+    const reportBtn = body.querySelector('.community-report-btn');
+    if (signedIn && !reported) {
+        reportBtn.addEventListener('click', async () => {
+            const reason = prompt('What is wrong with this design?');
+            if (reason === null) return;
+            if (!reason.trim()) {
+                alert('Give a reason so a moderator knows what to look at.');
+                return;
+            }
+
+            reportBtn.disabled = true;
+            try {
+                await reportDesign(row.id, reason.trim().slice(0, 500));
+                reportedThisSession.add(row.id);
+                reportBtn.textContent = 'Reported';
+                alert('Thanks — a moderator will take a look.');
+            } catch (err) {
+                reportBtn.disabled = false;
+                alert('Could not send the report: ' + err.message);
+            }
         });
     }
 
@@ -215,6 +285,9 @@ function updateKindButtons() {
     document.querySelectorAll('#community-kind button').forEach(btn => {
         btn.className = btn.dataset.kind === kindFilter ? 'active' : '';
     });
+    document.querySelectorAll('#community-sort button').forEach(btn => {
+        btn.className = btn.dataset.sort === sort ? 'active' : '';
+    });
 }
 
 export function init() {
@@ -250,6 +323,17 @@ export function init() {
         });
     }
 
+    const sorts = document.getElementById('community-sort');
+    if (sorts) {
+        sorts.addEventListener('click', (e) => {
+            const btn = e.target.closest('button[data-sort]');
+            if (!btn || btn.dataset.sort === sort) return;
+            sort = btn.dataset.sort;
+            updateKindButtons();
+            load();   // ordering is applied server-side, over all 200 rows
+        });
+    }
+
     document.getElementById('community-modal-close')?.addEventListener('click', closeModal);
     document.getElementById('community-modal-overlay')?.addEventListener('click', (e) => {
         if (e.target.id === 'community-modal-overlay') closeModal();
@@ -273,10 +357,18 @@ async function load() {
     }
 
     try {
-        entries = await listPublic();
+        entries = await listPublic({ sort });
     } catch (err) {
         grid.innerHTML = `<div class="no-results"><p>Could not load community designs: ${escapeHtml(err.message)}</p></div>`;
         return;
     }
+
+    // Own votes are a separate read, and a failure there must not blank the list.
+    try {
+        myVotes = await loadMyVotes();
+    } catch {
+        myVotes = new Set();
+    }
+
     refreshGrid();
 }
