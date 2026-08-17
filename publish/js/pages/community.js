@@ -2,7 +2,7 @@ import { renderNavbar } from '../components/navbar.js';
 import { renderAbilityCard } from '../components/ability-card.js';
 import { renderMobCard } from '../components/mob-card.js';
 import { escapeHtml } from '../utils/sanitize.js';
-import { markdownToPlain } from '../utils/markdown.js';
+import { renderMarkdown, markdownToPlain } from '../utils/markdown.js';
 import { listPublic } from '../services/design-service.js';
 import { isConfigured } from '../services/supabase-client.js';
 import { saveCustomAbility, saveCustomMob } from '../services/storage-service.js';
@@ -86,6 +86,17 @@ export function render() {
             </button>
             <div id="community-modal-body"></div>
         </div>
+    </div>
+
+    <div id="community-extra-info-overlay" class="modal-overlay" style="display:none;">
+        <div class="modal-content" style="background: var(--surface, white); padding: 0; max-height: 80vh; max-width: 550px; overflow-y: auto; border-radius: 12px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); position: relative;">
+            <button class="modal-close" id="community-extra-info-close">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M6 18L18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </button>
+            <div id="community-extra-info-body"></div>
+        </div>
     </div>`;
 }
 
@@ -148,6 +159,14 @@ function openModal(entry) {
             ${kind === 'ability' ? renderAbilityCard(item) : renderMobCard(item, item.world)}
         </div>`;
 
+    const extraBtn = body.querySelector('.ability-extra-info-btn, .mob-extra-info-btn');
+    if (extraBtn) {
+        extraBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            openExtraInfo(entry);
+        });
+    }
+
     const btn = body.querySelector('.community-copy-btn');
     btn.addEventListener('click', () => {
         // A fresh id, so a copy never overwrites a local design that happens to
@@ -166,6 +185,29 @@ function openModal(entry) {
 
 function closeModal() {
     const overlay = document.getElementById('community-modal-overlay');
+    if (overlay) overlay.style.display = 'none';
+}
+
+function openExtraInfo(entry) {
+    const overlay = document.getElementById('community-extra-info-overlay');
+    const body = document.getElementById('community-extra-info-body');
+    if (!overlay || !body) return;
+
+    overlay.style.display = 'flex';
+    body.innerHTML = `
+        <div class="extra-info-modal">
+            <div class="extra-info-header">
+                <h2>${escapeHtml(titleOf(entry))}</h2>
+                <span class="extra-info-subtitle">Supporting Information</span>
+            </div>
+            <div class="extra-info-body-content">
+                ${renderMarkdown(entry.item.data.extraInfo)}
+            </div>
+        </div>`;
+}
+
+function closeExtraInfo() {
+    const overlay = document.getElementById('community-extra-info-overlay');
     if (overlay) overlay.style.display = 'none';
 }
 
@@ -211,6 +253,11 @@ export function init() {
     document.getElementById('community-modal-close')?.addEventListener('click', closeModal);
     document.getElementById('community-modal-overlay')?.addEventListener('click', (e) => {
         if (e.target.id === 'community-modal-overlay') closeModal();
+    });
+
+    document.getElementById('community-extra-info-close')?.addEventListener('click', closeExtraInfo);
+    document.getElementById('community-extra-info-overlay')?.addEventListener('click', (e) => {
+        if (e.target.id === 'community-extra-info-overlay') closeExtraInfo();
     });
 
     load();
