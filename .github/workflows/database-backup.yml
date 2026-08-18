@@ -1,0 +1,136 @@
+name: Daily database backup
+
+on:
+  schedule:
+    # GitHub cron uses UTC. A non-round minute reduces peak-time delays.
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: daily-database-backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    name: Back up Supabase to R2
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+      BACKUP_AGE_RECIPIENT: ${{ secrets.BACKUP_AGE_RECIPIENT }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: auto
+      R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+      R2_BUCKET: phoenix-db-backups
+
+    steps:
+      - name: Install Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Install encryption tool
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes age
+
+      - name: Check required configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          required=(
+            SUPABASE_DB_URL
+            BACKUP_AGE_RECIPIENT
+            AWS_ACCESS_KEY_ID
+            AWS_SECRET_ACCESS_KEY
+            R2_ENDPOINT
+          )
+          for name in "${required[@]}"; do
+            if [[ -z "${!name:-}" ]]; then
+              echo "Required GitHub secret is missing: ${name}" >&2
+              exit 1
+            fi
+          done
+          printf '' | age --recipient "$BACKUP_AGE_RECIPIENT" >/dev/null 2>&1 || {
+            echo "BACKUP_AGE_RECIPIENT is not a valid age public key." >&2
+            exit 1
+          }
+          aws --version
+          supabase --version
+
+      - name: Create and encrypt logical backup
+        id: backup
+        shell: bash
+        run: |
+          set -euo pipefail
+          backup_dir="$(mktemp -d)"
+          trap 'rm -rf "$backup_dir"' EXIT
+          stamp="$(date -u +'%Y-%m-%dT%H-%M-%SZ')"
+          archive="phoenix-db-${stamp}.tar.gz"
+
+          supabase db dump \
+            --db-url "$SUPABASE_DB_URL" \
+            --file "$backup_dir/roles.sql" \
+            --role-only
+
+          supabase db dump \
+            --db-url "$SUPABASE_DB_URL" \
+            --file "$backup_dir/schema.sql"
+
+          supabase db dump \
+            --db-url "$SUPABASE_DB_URL" \
+            --file "$backup_dir/data.sql" \
+            --use-copy \
+            --data-only \
+            -x storage.buckets_vectors \
+            -x storage.vector_indexes
+
+          tar -C "$backup_dir" -czf "$archive" roles.sql schema.sql data.sql
+          age --recipient "$BACKUP_AGE_RECIPIENT" \
+            --output "${archive}.age" \
+            "$archive"
+          sha256sum "${archive}.age" > "${archive}.age.sha256"
+          rm -f "$archive"
+
+          echo "object_key=daily/${archive}.age" >> "$GITHUB_OUTPUT"
+          echo "checksum_key=daily/${archive}.age.sha256" >> "$GITHUB_OUTPUT"
+          echo "encrypted_file=${archive}.age" >> "$GITHUB_OUTPUT"
+          echo "checksum_file=${archive}.age.sha256" >> "$GITHUB_OUTPUT"
+
+      - name: Upload encrypted backup to R2
+        shell: bash
+        env:
+          OBJECT_KEY: ${{ steps.backup.outputs.object_key }}
+          CHECKSUM_KEY: ${{ steps.backup.outputs.checksum_key }}
+          ENCRYPTED_FILE: ${{ steps.backup.outputs.encrypted_file }}
+          CHECKSUM_FILE: ${{ steps.backup.outputs.checksum_file }}
+        run: |
+          set -euo pipefail
+          aws s3 cp "$ENCRYPTED_FILE" "s3://${R2_BUCKET}/${OBJECT_KEY}" \
+            --endpoint-url "$R2_ENDPOINT" \
+            --no-progress
+          aws s3 cp "$CHECKSUM_FILE" "s3://${R2_BUCKET}/${CHECKSUM_KEY}" \
+            --endpoint-url "$R2_ENDPOINT" \
+            --no-progress
+
+      - name: Verify uploaded backup
+        shell: bash
+        env:
+          OBJECT_KEY: ${{ steps.backup.outputs.object_key }}
+        run: |
+          set -euo pipefail
+          size="$(aws s3api head-object \
+            --bucket "$R2_BUCKET" \
+            --key "$OBJECT_KEY" \
+            --endpoint-url "$R2_ENDPOINT" \
+            --query ContentLength \
+            --output text)"
+          if [[ ! "$size" =~ ^[1-9][0-9]*$ ]]; then
+            echo "Uploaded backup is missing or empty." >&2
+            exit 1
+          fi
+          echo "Verified encrypted R2 backup: ${OBJECT_KEY} (${size} bytes)"
