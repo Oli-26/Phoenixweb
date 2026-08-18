@@ -5717,3 +5717,32 @@ body.lib-dragging[data-drag-type="mob"] [data-active-key^="a-"] {
     max-width: 1100px;
     margin: 0 auto;
 }
+
+/* Excluded tags: same control as include, inverted sense. */
+.filter-tag.excluded {
+    background: #b91c1c;
+    color: white;
+    border-color: #b91c1c;
+    text-decoration: line-through;
+}
+
+.filter-tag.excluded:hover {
+    background: #991b1b;
+    border-color: #991b1b;
+}
+
+.filter-chip.excluded-chip {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+[data-theme="dark"] .filter-tag.excluded {
+    background: #991b1b;
+    border-color: #991b1b;
+    color: #fee2e2;
+}
+
+[data-theme="dark"] .filter-chip.excluded-chip {
+    background: #7f1d1d;
+    color: #fee2e2;
+}

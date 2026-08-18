@@ -6,6 +6,7 @@ import { renderMarkdown, markdownToPlain } from '../utils/markdown.js';
 
 let searchTerm = '';
 let selectedTags = [];
+let excludedTags = [];
 let selectedPowers = [];
 let selectedComplexities = [];
 let filteredAbilities = [];
@@ -29,7 +30,7 @@ function escapeHtml(str) {
 }
 
 function hasActiveFilters() {
-    return selectedTags.length > 0 || selectedPowers.length > 0 || selectedComplexities.length > 0 || searchTerm.trim() !== '';
+    return selectedTags.length > 0 || excludedTags.length > 0 || selectedPowers.length > 0 || selectedComplexities.length > 0 || searchTerm.trim() !== '';
 }
 
 function performSearch() {
@@ -45,6 +46,10 @@ function performSearch() {
 
     if (selectedTags.length > 0) {
         results = results.filter(a => selectedTags.every(t => a.data.tags.includes(t)));
+    }
+
+    if (excludedTags.length > 0) {
+        results = results.filter(a => !excludedTags.some(t => a.data.tags.includes(t)));
     }
 
     if (selectedPowers.length > 0) {
@@ -104,6 +109,9 @@ function renderActiveFiltersSummary() {
     selectedTags.forEach(t => {
         chips.push(`<span class="filter-chip tag-chip">${escapeHtml(t)}<button class="chip-remove" data-toggle-tag="${escapeHtml(t)}">&times;</button></span>`);
     });
+    excludedTags.forEach(t => {
+        chips.push(`<span class="filter-chip tag-chip excluded-chip">not ${escapeHtml(t)}<button class="chip-remove" data-toggle-tag="${escapeHtml(t)}">&times;</button></span>`);
+    });
 
     return `<div class="active-filters-summary">
         <span class="results-count">${filteredAbilities.length} results</span>
@@ -127,8 +135,8 @@ export function render() {
     ).join('');
 
     const tagButtons = allTags.map(tag =>
-        `<button class="filter-tag ${selectedTags.includes(tag) ? 'active' : ''}" data-tag="${escapeHtml(tag)}">
-            ${escapeHtml(tag)}${selectedTags.includes(tag) ? '<span class="tag-close">&times;</span>' : ''}
+        `<button class="filter-tag ${tagStateClass(tag)}" data-tag="${escapeHtml(tag)}" title="Click to include, again to exclude">
+            ${escapeHtml(tag)}${tagAffix(tag)}
         </button>`
     ).join('');
 
@@ -167,7 +175,7 @@ export function render() {
                 <div class="filter-section">
                     <div class="filter-header">
                         <span>Filter by Tags</span>
-                        ${selectedTags.length > 0 ? '<button class="clear-filters" id="clear-tags">Clear Tags</button>' : ''}
+                        ${selectedTags.length > 0 || excludedTags.length > 0 ? '<button class="clear-filters" id="clear-tags">Clear Tags</button>' : ''}
                     </div>
                     <div class="tag-filters">${tagButtons}</div>
                 </div>
@@ -257,7 +265,7 @@ function attachChipEvents() {
     document.querySelectorAll('.chip-remove[data-toggle-tag]').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
-            toggleTag(btn.dataset.toggleTag);
+            removeTag(btn.dataset.toggleTag);
         });
     });
 }
@@ -278,16 +286,35 @@ function toggleComplexity(value) {
     updateFilterButtons();
 }
 
+// The chip's x means "drop this filter", not "advance it to the next state".
+function removeTag(tag) {
+    selectedTags = selectedTags.filter(t => t !== tag);
+    excludedTags = excludedTags.filter(t => t !== tag);
+    refreshGrid();
+    updateTagButtons();
+}
+
+// Off -> include -> exclude -> off, so one control covers both filter senses.
 function toggleTag(tag) {
-    const idx = selectedTags.indexOf(tag);
-    if (idx !== -1) selectedTags.splice(idx, 1);
-    else selectedTags.push(tag);
+    const inc = selectedTags.indexOf(tag);
+    const exc = excludedTags.indexOf(tag);
+
+    if (inc !== -1) {
+        selectedTags.splice(inc, 1);
+        excludedTags.push(tag);
+    } else if (exc !== -1) {
+        excludedTags.splice(exc, 1);
+    } else {
+        selectedTags.push(tag);
+    }
+
     refreshGrid();
     updateTagButtons();
 }
 
 function clearAllFilters() {
     selectedTags = [];
+    excludedTags = [];
     selectedPowers = [];
     selectedComplexities = [];
     searchTerm = '';
@@ -326,19 +353,26 @@ function updateFilterButtons() {
     }
 }
 
+function tagStateClass(tag) {
+    if (selectedTags.includes(tag)) return 'active';
+    if (excludedTags.includes(tag)) return 'excluded';
+    return '';
+}
+
+function tagAffix(tag) {
+    if (selectedTags.includes(tag)) return '<span class="tag-close">&times;</span>';
+    if (excludedTags.includes(tag)) return '<span class="tag-close">&minus;</span>';
+    return '';
+}
+
 function updateTagButtons() {
     document.querySelectorAll('.filter-tag[data-tag]').forEach(btn => {
         const tag = btn.dataset.tag;
-        if (selectedTags.includes(tag)) {
-            btn.classList.add('active');
-            if (!btn.querySelector('.tag-close')) {
-                btn.insertAdjacentHTML('beforeend', '<span class="tag-close">&times;</span>');
-            }
-        } else {
-            btn.classList.remove('active');
-            const close = btn.querySelector('.tag-close');
-            if (close) close.remove();
-        }
+        btn.className = `filter-tag ${tagStateClass(tag)}`.trim();
+        const affix = tagAffix(tag);
+        const existing = btn.querySelector('.tag-close');
+        if (existing) existing.remove();
+        if (affix) btn.insertAdjacentHTML('beforeend', affix);
     });
 }
 
@@ -419,6 +453,7 @@ export function init() {
     const clearTagsBtn = document.getElementById('clear-tags');
     if (clearTagsBtn) clearTagsBtn.addEventListener('click', () => {
         selectedTags = [];
+        excludedTags = [];
         refreshGrid();
         updateTagButtons();
     });
