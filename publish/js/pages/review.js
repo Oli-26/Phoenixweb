@@ -7,30 +7,62 @@ import {
     listReported, setHidden, clearReports
 } from '../services/design-service.js';
 import { onAuthChange } from '../services/auth-service.js';
+import { renderCataloguePanel, initCataloguePanel, refreshCatalogue } from './catalogue.js';
 
 let pending = [];
 let reported = [];
 let unsubscribeAuth = null;
+let activeTab = 'community';
 
 export function render() {
     return `
     ${renderNavbar()}
     <div class="container review-page">
         <div class="review-header">
-            <h1>Review Queue</h1>
-            <p class="review-subtitle">Designs waiting to go public.</p>
+            <h1>Admin</h1>
         </div>
-        <h2 class="review-section-title">Awaiting approval</h2>
-        <div id="review-body"><p class="review-empty">Loading…</p></div>
-        <h2 class="review-section-title">Reported</h2>
-        <div id="review-reported"><p class="review-empty">Loading…</p></div>
+        <div class="review-tabs" role="tablist" aria-label="Admin sections">
+            <button role="tab" data-review-tab="community">Community review</button>
+            <button role="tab" data-review-tab="catalogue">Core mobs &amp; abilities</button>
+        </div>
+        <section id="review-community-panel">
+            <p class="review-subtitle">Community designs waiting to go public, plus reported submissions.</p>
+            <h2 class="review-section-title">Awaiting approval</h2>
+            <div id="review-body"><p class="review-empty">Loading…</p></div>
+            <h2 class="review-section-title">Reported</h2>
+            <div id="review-reported"><p class="review-empty">Loading…</p></div>
+        </section>
+        <section id="review-catalogue-panel">${renderCataloguePanel()}</section>
     </div>`;
 }
 
 export function init() {
+    document.querySelector('.review-tabs')?.addEventListener('click', (e) => {
+        const button = e.target.closest('[data-review-tab]');
+        if (!button) return;
+        activeTab = button.dataset.reviewTab;
+        updateTabs();
+    });
+    initCataloguePanel();
+    updateTabs();
     // Auth resolves asynchronously at startup, so re-check whenever it settles.
     if (unsubscribeAuth) unsubscribeAuth();
-    unsubscribeAuth = onAuthChange(() => refresh());
+    unsubscribeAuth = onAuthChange(() => {
+        refresh();
+        refreshCatalogue();
+    });
+}
+
+function updateTabs() {
+    document.querySelectorAll('[data-review-tab]').forEach(button => {
+        const selected = button.dataset.reviewTab === activeTab;
+        button.classList.toggle('active', selected);
+        button.setAttribute('aria-selected', String(selected));
+    });
+    const community = document.getElementById('review-community-panel');
+    const catalogue = document.getElementById('review-catalogue-panel');
+    if (community) community.hidden = activeTab !== 'community';
+    if (catalogue) catalogue.hidden = activeTab !== 'catalogue';
 }
 
 async function refresh() {

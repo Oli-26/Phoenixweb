@@ -108,16 +108,18 @@ function renderAccount(container, user) {
     }
 }
 
-// The Review link is a convenience only — RLS is what actually gates the queue.
-async function refreshReviewLink() {
-    const link = document.getElementById('nav-review');
-    if (!link || !isConfigured()) return;
+// The admin links are a convenience only — RLS is what actually gates them.
+async function refreshAdminLinks() {
+    const links = ['nav-review']
+        .map(id => document.getElementById(id))
+        .filter(Boolean);
+    if (links.length === 0 || !isConfigured()) return;
 
     const userId = getUser()?.id ?? null;
     if (!userId) {
         adminCached = false;
         adminLoadedFor = null;
-        link.hidden = true;
+        links.forEach(link => { link.hidden = true; });
         return;
     }
 
@@ -133,7 +135,7 @@ async function refreshReviewLink() {
         adminLoadedFor = userId;
     }
 
-    link.hidden = !adminCached;
+    links.forEach(link => { link.hidden = !adminCached; });
 }
 
 function initAccount() {
@@ -146,7 +148,7 @@ function initAccount() {
     unsubscribeAuth = onAuthChange(user => {
         const el = document.getElementById('nav-account');
         if (el) renderAccount(el, user);
-        refreshReviewLink();
+        refreshAdminLinks();
     });
 }
 

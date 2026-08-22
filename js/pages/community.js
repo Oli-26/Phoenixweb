@@ -14,6 +14,10 @@ let kindFilter = 'all';
 let sort = 'new';
 let searchTerm = '';
 let searchDebounceTimer = null;
+let selectedTags = [];
+let excludedTags = [];
+// Built from whatever is published, since community designs have no canonical tag list.
+let availableTags = [];
 // Design row ids copied this session, so the button can report itself.
 const copied = new Set();
 let myVotes = new Set();
@@ -33,6 +37,10 @@ function truncate(text) {
     return plain.substring(0, 97) + '...';
 }
 
+function tagsOf({ item }) {
+    return item.data.tags || [];
+}
+
 function visible() {
     let results = entries;
 
@@ -40,11 +48,20 @@ function visible() {
         results = results.filter(e => e.kind === kindFilter);
     }
 
+    if (selectedTags.length > 0) {
+        results = results.filter(e => selectedTags.every(t => tagsOf(e).includes(t)));
+    }
+
+    if (excludedTags.length > 0) {
+        results = results.filter(e => !excludedTags.some(t => tagsOf(e).includes(t)));
+    }
+
     if (searchTerm.trim()) {
         const term = searchTerm.toLowerCase();
         results = results.filter(e =>
             titleOf(e).toLowerCase().includes(term) ||
-            descriptionOf(e).toLowerCase().includes(term)
+            descriptionOf(e).toLowerCase().includes(term) ||
+            tagsOf(e).some(t => t.toLowerCase().includes(term))
         );
     }
 
@@ -62,7 +79,7 @@ export function render() {
         <div class="browser-layout">
             <div class="main-panel">
                 <div class="search-section">
-                    <input type="text" class="search-input" placeholder="Search community designs..."
+                    <input type="text" class="search-input" placeholder="Search designs and tags..."
                         id="community-search" value="${escapeHtml(searchTerm)}" />
                 </div>
                 <div class="filters-container">
@@ -81,6 +98,13 @@ export function render() {
                             <button data-sort="top">Most liked</button>
                         </div>
                     </div>
+                </div>
+                <div class="filter-section" id="community-tag-section" style="display:none;">
+                    <div class="filter-header">
+                        <span>Filter by Tags</span>
+                        <button class="clear-filters" id="community-clear-tags" style="display:none;">Clear Tags</button>
+                    </div>
+                    <div class="tag-filters" id="community-tag-filters"></div>
                 </div>
                 <div class="abilities-grid" id="community-grid">
                     <div class="no-results"><p>Loading…</p></div>
@@ -117,7 +141,7 @@ function renderGrid() {
     if (items.length === 0) {
         return `<div class="no-results"><p>${entries.length === 0
             ? 'Nothing published yet. Approved designs show up here.'
-            : 'No designs match that search.'}</p></div>`;
+            : 'No designs match those filters.'}</p></div>`;
     }
 
     return items.map(entry => {
@@ -141,6 +165,54 @@ function renderGrid() {
             </div>
         </div>`;
     }).join('');
+}
+
+function tagStateClass(tag) {
+    if (selectedTags.includes(tag)) return 'active';
+    if (excludedTags.includes(tag)) return 'excluded';
+    return '';
+}
+
+function tagAffix(tag) {
+    if (selectedTags.includes(tag)) return '<span class="tag-close">&times;</span>';
+    if (excludedTags.includes(tag)) return '<span class="tag-close">&minus;</span>';
+    return '';
+}
+
+function renderTagFilters() {
+    const section = document.getElementById('community-tag-section');
+    const container = document.getElementById('community-tag-filters');
+    if (!section || !container) return;
+
+    section.style.display = availableTags.length > 0 ? '' : 'none';
+    container.innerHTML = availableTags.map(tag =>
+        `<button class="filter-tag ${tagStateClass(tag)}" data-tag="${escapeHtml(tag)}" title="Click to include, again to exclude">
+            ${escapeHtml(tag)}${tagAffix(tag)}
+        </button>`
+    ).join('');
+
+    const clear = document.getElementById('community-clear-tags');
+    if (clear) {
+        clear.style.display = selectedTags.length > 0 || excludedTags.length > 0 ? '' : 'none';
+    }
+}
+
+// Off -> include -> exclude -> off, matching the ability and mob browsers.
+function toggleTag(tag) {
+    const inc = selectedTags.indexOf(tag);
+    const exc = excludedTags.indexOf(tag);
+
+    if (inc !== -1) {
+        selectedTags.splice(inc, 1);
+        excludedTags.push(tag);
+    } else if (exc !== -1) {
+        excludedTags.splice(exc, 1);
+    } else {
+        selectedTags.push(tag);
+    }
+
+    renderTagFilters();
+    refreshGrid();
 }
 
 function refreshGrid() {
@@ -334,6 +406,22 @@ export function init() {
         });
     }
 
+    const tagFilters = document.getElementById('community-tag-filters');
+    if (tagFilters) {
+        tagFilters.addEventListener('click', (e) => {
+            const btn = e.target.closest('button[data-tag]');
+            if (!btn) return;
+            toggleTag(btn.dataset.tag);
+        });
+    }
+
+    document.getElementById('community-clear-tags')?.addEventListener('click', () => {
+        selectedTags = [];
+        excludedTags = [];
+        renderTagFilters();
+        refreshGrid();
+    });
+
     document.getElementById('community-modal-close')?.addEventListener('click', closeModal);
     document.getElementById('community-modal-overlay')?.addEventListener('click', (e) => {
         if (e.target.id === 'community-modal-overlay') closeModal();
@@ -370,5 +458,12 @@ async function load() {
         myVotes = new Set();
     }
 
+    const seen = new Set(entries.flatMap(tagsOf));
+    availableTags = [...seen].sort((a, b) => a.localeCompare(b));
+    // A re-sort can drop a tag that no longer appears in the returned rows.
+    selectedTags = selectedTags.filter(t => seen.has(t));
+    excludedTags = excludedTags.filter(t => seen.has(t));
+
+    renderTagFilters();
     refreshGrid();
 }

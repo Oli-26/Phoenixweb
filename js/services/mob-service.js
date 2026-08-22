@@ -1,37 +1,25 @@
-const cache = {};
+import { loadCatalog, getCatalogMobs } from './catalog-service.js';
 
 const worldConfig = {
-    barbarus: { file: 'data/barbarus-mobs.json', name: 'Barbarus' },
-    rifts: { file: 'data/rifts-mobs.json', name: 'Rifts & Rivets' },
-    city: { file: 'data/city-mobs.json', name: 'The City' }
+    barbarus: { name: 'Barbarus' },
+    rifts: { name: 'Rifts & Rivets' },
+    city: { name: 'The City' }
 };
 
 export async function loadMobs(world) {
-    if (cache[world]) return;
-    const config = worldConfig[world];
-    if (!config) return;
-
-    try {
-        const response = await fetch(config.file);
-        if (response.ok) {
-            const data = await response.json();
-            cache[world] = data.dataItems || [];
-        }
-    } catch (e) {
-        console.error(`Failed to load mobs for ${world}:`, e);
-        cache[world] = [];
-    }
+    if (!worldConfig[world]) return;
+    await loadCatalog();
 }
 
 export function getAllMobs(world) {
-    return cache[world] || [];
+    return getCatalogMobs(world);
 }
 
 export function getAllTags(world) {
-    const mobs = cache[world] || [];
+    const mobs = getCatalogMobs(world);
     const tagSet = new Set();
     for (const m of mobs) {
-        for (const tag of m.data.tags) {
+        for (const tag of m.data.tags || []) {
             tagSet.add(tag);
         }
     }
@@ -39,7 +27,7 @@ export function getAllTags(world) {
 }
 
 export function getMobById(world, id) {
-    const mobs = cache[world] || [];
+    const mobs = getCatalogMobs(world);
     return mobs.find(m => m.id === id) || null;
 }
 

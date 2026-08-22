@@ -1,28 +1,15 @@
-let abilities = [];
+import { loadCatalog, getCatalogAbilities } from './catalog-service.js';
 
 export async function loadAbilities() {
-    if (abilities.length > 0) return;
-
-    try {
-        const response = await fetch('data/abilities.json');
-        if (response.ok) {
-            const data = await response.json();
-            if (data.dataItems) {
-                abilities = data.dataItems;
-            }
-        }
-    } catch (e) {
-        console.error('Failed to load abilities:', e);
-        abilities = [];
-    }
+    await loadCatalog();
 }
 
 export function getAllAbilities() {
-    return abilities;
+    return getCatalogAbilities();
 }
 
 export function searchAbilities(searchTerm, selectedTags) {
-    let results = abilities;
+    let results = getCatalogAbilities();
 
     if (searchTerm && searchTerm.trim()) {
         const term = searchTerm.toLowerCase();
@@ -43,8 +30,8 @@ export function searchAbilities(searchTerm, selectedTags) {
 
 export function getAllTags() {
     const tagSet = new Set();
-    for (const a of abilities) {
-        for (const tag of a.data.tags) {
+    for (const a of getCatalogAbilities()) {
+        for (const tag of a.data.tags || []) {
             tagSet.add(tag);
         }
     }
@@ -52,7 +39,7 @@ export function getAllTags() {
 }
 
 export function getAbilityById(id) {
-    return abilities.find(a => a.id === id) || null;
+    return getCatalogAbilities().find(a => a.id === id) || null;
 }
 
 export function hasLevel(data, level) {
